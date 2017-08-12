@@ -25,6 +25,7 @@ namespace WindowOrganiser
 
         private void Form1_Load(object sender, EventArgs e)
         {
+			Console.WriteLine($"I am running in {Directory.GetCurrentDirectory()}, but am using {Environment.SpecialFolder.ApplicationData} for data");
 			String[] arguments = Environment.GetCommandLineArgs();
 			if (arguments.Count() == 1 || String.IsNullOrWhiteSpace(arguments[1])) {
 				loadContextMenu();
@@ -32,9 +33,12 @@ namespace WindowOrganiser
 				loadTable("default");
 				findNewWindows(false);
 			} else {
+				Console.WriteLine($"Detected command line argument - {arguments[1]}");
+				SetupDataGridView();
 				loadTable(arguments[1]);
 				findNewWindows(false);
 				moveWindows();
+				Application.Exit();
 			}
         }
 
@@ -94,7 +98,8 @@ namespace WindowOrganiser
 			cullRows();
 			Console.WriteLine("Writing table to file");
 			string input = Microsoft.VisualBasic.Interaction.InputBox("Save", "New Config Name", "default", 0, 0);
-			dTable.WriteXml($"{input}.xml");
+			System.IO.Directory.CreateDirectory(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) , "WindowOrganiser"));
+			dTable.WriteXml(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WindowOrganiser", $"{input}.xml"));
 
 			loadContextMenu();
 		}
@@ -103,7 +108,7 @@ namespace WindowOrganiser
 			dTable.Clear();
 			Console.WriteLine($"Loading table {configName} from file");
 			try {
-				dTable.ReadXml($"{configName}.xml");
+				dTable.ReadXml(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WindowOrganiser", $"{configName}.xml"));
 			} catch (FileNotFoundException) { }
 		}
 

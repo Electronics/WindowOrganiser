@@ -16,6 +16,7 @@ namespace WindowOrganiser
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
             Application.Run(new WindowOrganiser());
         }
     }
