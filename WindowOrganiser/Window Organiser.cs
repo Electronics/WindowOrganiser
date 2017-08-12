@@ -124,8 +124,9 @@ namespace WindowOrganiser
 
 		private void loadContextMenu() {
 			notifyIcon1.ContextMenu = new ContextMenu();
-			foreach (String s in Directory.GetFiles(".","*.xml")) {
-				String configName = s.Substring(s.LastIndexOf('\\') + 1 , s.LastIndexOf('.') - 2);
+			foreach (String s in Directory.GetFiles(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WindowOrganiser"),"*.xml")) {
+				//Console.WriteLine(s);
+				String configName = Path.GetFileNameWithoutExtension(s);
 				notifyIcon1.ContextMenu.MenuItems.Add(configName , (something , ev) => {
 					loadTable(configName);
 					findNewWindows(false);
