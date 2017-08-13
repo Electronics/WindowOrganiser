@@ -11,16 +11,26 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using ExtensionMethods;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace WindowOrganiser
 {
     public partial class WindowOrganiser : Form
     {
 		DataTable dTable = new DataTable();
+		private static KeyHandler keyHandler;
+		public static Dictionary<string , int> shortcuts = new Dictionary<string , int>(); // configName to keyValue
+		
 
         public WindowOrganiser()
         {
             InitializeComponent();
+			// populate our shortcuts dictionary from preferences
+			if (!String.IsNullOrWhiteSpace(Properties.Settings.Default.shortcuts)) {
+				Console.WriteLine($"Found pre-existing preferences: {Properties.Settings.Default.shortcuts}");
+				shortcuts = JsonConvert.DeserializeObject<Dictionary<string , int>>(Properties.Settings.Default.shortcuts);
+			}
+			keyHandler = new KeyHandler(this);
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -32,15 +42,24 @@ namespace WindowOrganiser
 				SetupDataGridView();
 				loadTable("default");
 				findNewWindows(false);
+				addShortcuts();
 			} else {
 				Console.WriteLine($"Detected command line argument - {arguments[1]}");
 				SetupDataGridView();
-				loadTable(arguments[1]);
-				findNewWindows(false);
-				moveWindows();
+				loadAndMove(arguments[1]);
 				Application.Exit();
 			}
         }
+
+		public static void addShortcuts() {
+			foreach (KeyValuePair<string, int> entry in shortcuts) {
+				keyHandler.Register(Constants.NOMOD , entry.Value);
+			}
+		}
+
+		public static void removeShortcuts() {
+			keyHandler.Unregister();
+		}
 
 		private void findNewWindows(bool overwritePos) {			
 			foreach(KeyValuePair<IntPtr, string> window in WindowFinder.GetOpenWindows()) {
@@ -125,14 +144,18 @@ namespace WindowOrganiser
 		private void loadContextMenu() {
 			notifyIcon1.ContextMenu = new ContextMenu();
 			foreach (String s in Directory.GetFiles(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WindowOrganiser"),"*.xml")) {
-				//Console.WriteLine(s);
 				String configName = Path.GetFileNameWithoutExtension(s);
+				Console.WriteLine($"Found config file: {configName}");
 				notifyIcon1.ContextMenu.MenuItems.Add(configName , (something , ev) => {
-					loadTable(configName);
-					findNewWindows(false);
-					moveWindows();			
+					loadAndMove(configName);
 				});
 			}
+		}
+
+		private void loadAndMove(String name) {
+			loadTable(name);
+			findNewWindows(false);
+			moveWindows();
 		}
 
 		private void SetupDataGridView()
@@ -189,6 +212,24 @@ namespace WindowOrganiser
 		private void notifyIcon1_MouseDoubleClick(object sender , MouseEventArgs e) {
 			Show();
 			WindowState = FormWindowState.Normal;
+		}
+
+		protected override void WndProc(ref Message m) {
+			if (m.Msg == Constants.WM_HOTKEY_MSG_ID) {
+				int pressedKey = (int)(m.LParam) >> 16;
+				foreach(KeyValuePair<string, int> entry in shortcuts) {
+					if(pressedKey == entry.Value) {
+						Console.WriteLine($"Got a key press({entry.Value}) for {entry.Key}");
+						loadAndMove(entry.Key);
+					}
+				}
+			}
+			base.WndProc(ref m);
+		}
+
+		private void button_settings_Click(object sender , EventArgs e) {
+			var form = new SettingsPopup();
+			form.ShowDialog(this);
 		}
 	}
 }
