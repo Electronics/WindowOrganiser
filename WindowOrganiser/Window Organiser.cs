@@ -126,9 +126,9 @@ namespace WindowOrganiser
 		private void loadTable(String configName) {
 			dTable.Clear();
 			Console.WriteLine($"Loading table {configName} from file");
-			try {
-				dTable.ReadXml(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WindowOrganiser", $"{configName}.xml"));
-			} catch (FileNotFoundException) { }
+            try {
+                dTable.ReadXml(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WindowOrganiser", $"{configName}.xml"));
+            } catch (FileNotFoundException) { } catch (System.IO.DirectoryNotFoundException) { }
 		}
 
 		private bool checkRowForMove(DataRow r) {
@@ -143,13 +143,19 @@ namespace WindowOrganiser
 
 		private void loadContextMenu() {
 			notifyIcon1.ContextMenu = new ContextMenu();
-			foreach (String s in Directory.GetFiles(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WindowOrganiser"),"*.xml")) {
-				String configName = Path.GetFileNameWithoutExtension(s);
-				Console.WriteLine($"Found config file: {configName}");
-				notifyIcon1.ContextMenu.MenuItems.Add(configName , (something , ev) => {
-					loadAndMove(configName);
-				});
-			}
+            try {
+                foreach (String s in Directory.GetFiles(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WindowOrganiser"), "*.xml"))
+                {
+                    String configName = Path.GetFileNameWithoutExtension(s);
+                    Console.WriteLine($"Found config file: {configName}");
+                    notifyIcon1.ContextMenu.MenuItems.Add(configName, (something, ev) =>
+                    {
+                        loadAndMove(configName);
+                    });
+                }
+            } catch(System.IO.DirectoryNotFoundException e) {
+                // We haven't made this directory yet
+            }
 		}
 
 		private void loadAndMove(String name) {
